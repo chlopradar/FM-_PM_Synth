@@ -1,0 +1,81 @@
+/*
+  ==============================================================================
+
+    This file contains the basic framework code for a JUCE plugin processor.
+
+  ==============================================================================
+*/
+
+#pragma once
+
+#include <JuceHeader.h>
+#include "SynthSound.h"
+#include "SynthVoice.h"
+#include "Data/VocoderData.h"
+
+class FM_SYNTHAudioProcessor : public juce::AudioProcessor
+{
+public:
+    //==============================================================================
+    FM_SYNTHAudioProcessor();
+    ~FM_SYNTHAudioProcessor() override;
+
+    //==============================================================================
+    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+    void releaseResources() override;
+
+#ifndef JucePlugin_PreferredChannelConfigurations
+    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
+#endif
+
+    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+    //==============================================================================
+    juce::AudioProcessorEditor* createEditor() override;
+    bool hasEditor() const override;
+
+    //==============================================================================
+    const juce::String getName() const override;
+
+    bool acceptsMidi() const override;
+    bool producesMidi() const override;
+    bool isMidiEffect() const override;
+    double getTailLengthSeconds() const override;
+
+    //==============================================================================
+    int getNumPrograms() override;
+    int getCurrentProgram() override;
+    void setCurrentProgram(int index) override;
+    const juce::String getProgramName(int index) override;
+    void changeProgramName(int index, const juce::String& newName) override;
+
+    //==============================================================================
+    void getStateInformation(juce::MemoryBlock& destData) override;
+    void setStateInformation(const void* data, int sizeInBytes) override;
+
+    void updateOscilloscopeBuffer(const juce::AudioBuffer<float>& bufferToCopy)
+    {
+        const juce::ScopedLock sl(oscLock);
+        oscilloscopeBuffer.makeCopyOf(bufferToCopy);
+    }
+
+    void getOscilloscopeBuffer(juce::AudioBuffer<float>& destBuffer)
+    {
+        const juce::ScopedLock sl(oscLock);
+        destBuffer.makeCopyOf(oscilloscopeBuffer);
+    }
+    float getCurrentFrequency() const;
+
+    juce::AudioProcessorValueTreeState apvts;
+
+private:
+    juce::Synthesiser synth;
+    VocoderData vocoder;
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
+    juce::CriticalSection oscLock;
+    juce::AudioBuffer<float> oscilloscopeBuffer; 
+
+
+    //==============================================================================
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FM_SYNTHAudioProcessor)
+};
